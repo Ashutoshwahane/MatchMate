@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +33,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import dev.ashutoshwahane.matchmate.domain.model.ProfileModel
+import dev.ashutoshwahane.matchmate.domain.utils.ProfileStatus
 import dev.ashutoshwahane.matchmate.utils.ColorManager
 import dev.ashutoshwahane.matchmate.utils.CustomCTA
 import dev.ashutoshwahane.matchmate.utils.DataResource
@@ -58,7 +62,7 @@ import dev.ashutoshwahane.matchmate.utils.shimmer
 
 class ProfileMatchesCompose {
     @Composable
-    fun ProfileMatches(){
+    fun ProfileMatches() {
         val viewmodel: ProfileMatchesViewmodel = viewModel()
         val uiState = viewmodel.uiState.collectAsState()
         ProfileMatchesStatic(
@@ -80,8 +84,9 @@ class ProfileMatchesCompose {
         onRefresh: () -> Unit = {},
         onAcceptCTA: (ProfileModel) -> Unit,
         onDeniedCTA: (ProfileModel) -> Unit,
-    ){
-        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    ) {
+        val scrollBehavior =
+            TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
         val tintColor = if (isSystemInDarkTheme()) Color.White else Color.Black
         Scaffold(
             modifier = Modifier
@@ -93,7 +98,7 @@ class ProfileMatchesCompose {
                     },
                     scrollBehavior = scrollBehavior,
                     actions = {
-                        if (scrollBehavior.state.collapsedFraction == 1f){
+                        if (scrollBehavior.state.collapsedFraction == 1f) {
                             IconButton(onClick = {
                                 onRefresh()
                             }) {
@@ -108,7 +113,7 @@ class ProfileMatchesCompose {
                     },
                 )
             },
-        ) {paddingValues ->
+        ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .padding(paddingValues)
@@ -123,30 +128,37 @@ class ProfileMatchesCompose {
                     label = "Profiles",
                     animationSpec = tween(1000)
                 ) {
-                    when(it){
+                    when (it) {
                         ResourceState.INITIAL,
                         ResourceState.LOADING -> {
                             ProfileCardShimmer()
                         }
+
                         ResourceState.SUCCESS -> {
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
                             ) {
                                 if (profiles.data != null) {
-                                    itemsIndexed(profiles.data){ index, profile ->
+                                    itemsIndexed(profiles.data) { index, profile ->
                                         ProfileCard(
                                             profile = profile,
-                                            onDeniedCTA = {onDeniedCTA(it)},
-                                            onAcceptCTA = {onAcceptCTA(it)}
+                                            profileStatus = profile.isAccepted,
+                                            onDeniedCTA = { onDeniedCTA(it) },
+                                            onAcceptCTA = { onAcceptCTA(it) }
                                         )
                                     }
 
                                 }
                             }
                         }
-                        ResourceState.ERROR -> {
 
+                        ResourceState.ERROR -> {
+                            ProfileCardError(
+                                onRetry = {
+                                    onRefresh()
+                                }
+                            )
                         }
                     }
                 }
@@ -158,9 +170,10 @@ class ProfileMatchesCompose {
     @Composable
     fun ProfileCard(
         profile: ProfileModel,
+        profileStatus: ProfileStatus,
         onAcceptCTA: (ProfileModel) -> Unit,
         onDeniedCTA: (ProfileModel) -> Unit,
-    ){
+    ) {
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -191,7 +204,7 @@ class ProfileMatchesCompose {
                             )
                         },
                     contentScale = ContentScale.Crop,
-                    contentDescription = "Translated description of what the image contains"
+                    contentDescription = "profile image"
                 )
                 Column(
                     modifier = Modifier
@@ -200,7 +213,7 @@ class ProfileMatchesCompose {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
-                    ){
+                    ) {
                         Text(
                             text = "${profile.firstName} ${profile.lastName},",
                             style = TextStyle(
@@ -240,40 +253,76 @@ class ProfileMatchesCompose {
                 modifier = Modifier
                     .fillMaxWidth(),
             ) {
-                CustomCTA(
-                    text = "Denied",
-                    textColor = ColorManager.textColor,
-                    backgroundColor = ColorManager.redBackgroundColor,
-                    isLoading = false,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onDeniedCTA(profile)
+                var isAccepted by remember { mutableStateOf(false) }
+                var isDenied by remember { mutableStateOf(false) }
+                when (profileStatus) {
+                    ProfileStatus.ACCEPTED -> {
+                        CustomCTA(
+                            text = "Accept",
+                            textColor = ColorManager.textColor,
+                            backgroundColor = ColorManager.greenBackgroundColor,
+                            modifier = Modifier.weight(if (isAccepted) 1f else 1f),
+                            isLoading = false,
+                            onClick = {
+                                onAcceptCTA(profile)
+                                isAccepted = true
+                            }
+                        )
                     }
-                )
 
-                CustomCTA(
-                    text = "Accept",
-                    textColor = ColorManager.textColor,
-                    backgroundColor = ColorManager.greenBackgroundColor,
-                    modifier = Modifier.weight(1f),
-                    isLoading = false,
-                    onClick = {
-                        onAcceptCTA(profile)
+                    ProfileStatus.DENIED -> {
+                        CustomCTA(
+                            text = "Denied",
+                            textColor = ColorManager.textColor,
+                            backgroundColor = ColorManager.redBackgroundColor,
+                            isLoading = false,
+                            modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
+                            onClick = {
+                                onDeniedCTA(profile)
+                                isDenied = true
+                            }
+                        )
                     }
-                )
+
+                    ProfileStatus.PENDING -> {
+                        CustomCTA(
+                            text = "Denied",
+                            textColor = ColorManager.textColor,
+                            backgroundColor = ColorManager.redBackgroundColor,
+                            isLoading = false,
+                            modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
+                            onClick = {
+                                onDeniedCTA(profile)
+                                isDenied = true
+                            }
+                        )
+
+                        CustomCTA(
+                            text = "Accept",
+                            textColor = ColorManager.textColor,
+                            backgroundColor = ColorManager.greenBackgroundColor,
+                            modifier = Modifier.weight(if (isAccepted) 1f else 1f),
+                            isLoading = false,
+                            onClick = {
+                                onAcceptCTA(profile)
+                                isAccepted = true
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
 
     @Composable
-    fun ProfileCardShimmer(){
+    fun ProfileCardShimmer() {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .fillMaxSize()
         ) {
-            repeat(10){
+            repeat(10) {
                 Box(
                     modifier = Modifier
                         .height(300.dp)
@@ -285,16 +334,33 @@ class ProfileMatchesCompose {
             }
         }
     }
+
+    @Composable
+    fun ProfileCardError(
+        onRetry: () -> Unit
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CustomCTA(
+                text = "R E T R Y ",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                textColor = ColorManager.textColor,
+                backgroundColor = ColorManager.redBackgroundColor
+            ) {
+                onRetry()
+            }
+        }
+    }
 }
-
-
-
-
-
-
 
 @Preview
 @Composable
-fun ProfileMatchesComposePreview(){
+fun ProfileMatchesComposePreview() {
     ProfileMatchesCompose().ProfileMatches()
 }

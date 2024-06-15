@@ -1,15 +1,19 @@
 package dev.ashutoshwahane.matchmate.data.database
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProfileDao {
     @Query("SELECT * FROM profile")
-    fun getNotes(): Flow<List<ProfileEntity>>
-}
+    suspend fun getAllProfiles(): List<ProfileEntity>
 
-data class Profile(
-    val name: String
-)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProfile(profile: ProfileEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProfiles(profiles: List<ProfileEntity>)
+
+}

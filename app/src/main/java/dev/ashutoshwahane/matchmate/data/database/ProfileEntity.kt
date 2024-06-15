@@ -5,10 +5,13 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "profile")
 class ProfileEntity(
-    val name: String,
+    val id: Int = 0,
     @PrimaryKey
     val email: String,
+    val firstName: String,
+    val lastName: String,
     val address: String,
     val age: String,
     val profilePic: String,
+    val isAccepted: String
 )

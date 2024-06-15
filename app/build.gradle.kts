@@ -20,6 +20,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        kapt {
+            arguments {
+                arg("room.schemaLocation", "$projectDir/schemas")
+            }
+        }
     }
 
     buildTypes {
@@ -78,6 +84,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.moshi)
     implementation(libs.logging.interceptor)
+    implementation(libs.kotlinx.serialization.json)
 
     // Kotlin
     implementation(libs.kotlinx.coroutines.core)
@@ -85,4 +92,17 @@ dependencies {
     // Image
     implementation(libs.coil.compose)
 
+    // Local
+    //Room Database
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
+
+    // Logger
+    debugImplementation("com.github.chuckerteam.chucker:library:4.0.0")
+    releaseImplementation("com.github.chuckerteam.chucker:library-no-op:4.0.0")
+}
+
+kapt {
+    correctErrorTypes = true
 }

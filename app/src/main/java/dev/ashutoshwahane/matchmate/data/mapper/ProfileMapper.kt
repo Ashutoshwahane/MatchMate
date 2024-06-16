@@ -50,6 +50,7 @@ fun Result.mapDataToDomain(): ProfileModel {
 }
 
 fun ProfileModel.mapDomainToData(): ProfileEntity {
+    Log.d("debug", "mapDataToDomain: $isAccepted")
     return ProfileEntity(
         firstName = firstName,
         lastName = lastName,

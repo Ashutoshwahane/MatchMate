@@ -27,7 +27,6 @@ class ProfileRepositoryImpl @Inject constructor(
                     val localImagePath = profileModel.profilePic.let { image ->
                         downloadImageAndSave(context, image, profileModel.email)
                     }
-                    Log.d("debug", "getProfiles: $localImagePath")
                     profileModel.profilePic = localImagePath ?: profileModel.profilePic
                 }
                 profileDao.insertProfiles(profilesFromApi.mapDataToDB())
@@ -41,9 +40,5 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfile(profileModel: ProfileModel) {
         profileDao.insertProfile(profile = profileModel.mapDomainToData())
-    }
-
-    override suspend fun getProfilesFromDB(): List<ProfileModel> {
-        return profileDao.getAllProfiles().mapDataToDomain()
     }
 }

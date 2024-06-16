@@ -60,301 +60,302 @@ import dev.ashutoshwahane.matchmate.utils.DataResource
 import dev.ashutoshwahane.matchmate.utils.ResourceState
 import dev.ashutoshwahane.matchmate.utils.shimmer
 
-class ProfileMatchesCompose {
-    @Composable
-    fun ProfileMatches() {
-        val viewmodel: ProfileMatchesViewmodel = viewModel()
-        val uiState = viewmodel.uiState.collectAsState()
-        ProfileMatchesStatic(
-            profiles = uiState.value.profilesResources,
-            onRefresh = viewmodel::fetchMatches,
-            onAcceptCTA = {
-                viewmodel.acceptProfile(it)
-            },
-            onDeniedCTA = {
-                viewmodel.denyProfile(it)
-            }
-        )
-    }
+@Composable
+fun ProfileMatches() {
+    val viewmodel: ProfileMatchesViewmodel = viewModel()
+    val uiState = viewmodel.uiState.collectAsState()
+    ProfileMatchesStatic(
+        profiles = uiState.value.profilesResources,
+        onRefresh = viewmodel::fetchProfiles,
+        onAcceptCTA = {
+            viewmodel.updateProfileStatus(profile = it, newStatus = ProfileStatus.ACCEPTED)
+        },
+        onDeniedCTA = {
+            viewmodel.updateProfileStatus(profile = it, newStatus = ProfileStatus.DENIED)
+        }
+    )
+}
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun ProfileMatchesStatic(
-        profiles: DataResource<List<ProfileModel>>,
-        onRefresh: () -> Unit = {},
-        onAcceptCTA: (ProfileModel) -> Unit,
-        onDeniedCTA: (ProfileModel) -> Unit,
-    ) {
-        val scrollBehavior =
-            TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-        val tintColor = if (isSystemInDarkTheme()) Color.White else Color.Black
-        Scaffold(
-            modifier = Modifier
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                MediumTopAppBar(
-                    title = {
-                        Text(text = "Profile Matches")
-                    },
-                    scrollBehavior = scrollBehavior,
-                    actions = {
-                        if (scrollBehavior.state.collapsedFraction == 1f) {
-                            IconButton(onClick = {
-                                onRefresh()
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "QR Scanner",
-                                    tint = tintColor,
-                                    modifier = Modifier
-                                )
-                            }
-                        }
-                    },
-                )
-            },
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-                    .background(Color.White),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Crossfade(
-                    targetState = profiles.resourceState,
-                    label = "Profiles",
-                    animationSpec = tween(1000)
-                ) {
-                    when (it) {
-                        ResourceState.INITIAL,
-                        ResourceState.LOADING -> {
-                            ProfileCardShimmer()
-                        }
-
-                        ResourceState.SUCCESS -> {
-                            LazyColumn(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileMatchesStatic(
+    profiles: DataResource<List<ProfileModel>>,
+    onRefresh: () -> Unit = {},
+    onAcceptCTA: (ProfileModel) -> Unit,
+    onDeniedCTA: (ProfileModel) -> Unit,
+) {
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val tintColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    Scaffold(
+        modifier = Modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            MediumTopAppBar(
+                title = {
+                    Text(text = "Profile Matches")
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isSystemInDarkTheme().not()) Color.White else Color.Black,
+                ),
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    if (scrollBehavior.state.collapsedFraction == 1f) {
+                        IconButton(onClick = {
+                            onRefresh()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh Profiles",
+                                tint = tintColor,
                                 modifier = Modifier
-                                    .fillMaxSize()
-                            ) {
-                                if (profiles.data != null) {
-                                    itemsIndexed(profiles.data) { index, profile ->
-                                        ProfileCard(
-                                            profile = profile,
-                                            profileStatus = profile.isAccepted,
-                                            onDeniedCTA = { onDeniedCTA(it) },
-                                            onAcceptCTA = { onAcceptCTA(it) }
-                                        )
-                                    }
-
-                                }
-                            }
-                        }
-
-                        ResourceState.ERROR -> {
-                            ProfileCardError(
-                                onRetry = {
-                                    onRefresh()
-                                }
                             )
                         }
+                    }
+                },
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(Color.White),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Crossfade(
+                targetState = profiles.resourceState,
+                label = "Profiles",
+                animationSpec = tween(1000)
+            ) {
+                when (it) {
+                    ResourceState.INITIAL,
+                    ResourceState.LOADING -> {
+                        ProfileCardShimmer()
+                    }
+
+                    ResourceState.SUCCESS -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
+                            if (profiles.data != null) {
+                                itemsIndexed(profiles.data) { index, profile ->
+                                    ProfileCard(
+                                        profile = profile,
+                                        profileStatus = profile.isAccepted,
+                                        onDeniedCTA = { onDeniedCTA(it) },
+                                        onAcceptCTA = { onAcceptCTA(it) }
+                                    )
+                                }
+
+                            }
+                        }
+                    }
+
+                    ResourceState.ERROR -> {
+                        ProfileCardError(
+                            onRetry = {
+                                onRefresh()
+                            }
+                        )
                     }
                 }
             }
         }
-
     }
 
-    @Composable
-    fun ProfileCard(
-        profile: ProfileModel,
-        profileStatus: ProfileStatus,
-        onAcceptCTA: (ProfileModel) -> Unit,
-        onDeniedCTA: (ProfileModel) -> Unit,
+}
+
+@Composable
+fun ProfileCard(
+    profile: ProfileModel,
+    profileStatus: ProfileStatus,
+    onAcceptCTA: (ProfileModel) -> Unit,
+    onDeniedCTA: (ProfileModel) -> Unit,
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 10.dp),
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = Color.LightGray),
     ) {
-        ElevatedCard(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 10.dp),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(containerColor = Color.LightGray),
+                .fillMaxWidth(),
         ) {
-            Box(
+            AsyncImage(
+                model = profile.profilePic,
                 modifier = Modifier
-                    .fillMaxWidth(),
-            ) {
-                AsyncImage(
-                    model = profile.profilePic,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color(0x80000000) // 50% opacity black
-                                    ),
-                                    startY = size.height / 3,
-                                    endY = size.height
-                                )
+                    .fillMaxWidth()
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color(0x80000000) // 50% opacity black
+                                ),
+                                startY = size.height / 3,
+                                endY = size.height
                             )
-                        },
-                    contentScale = ContentScale.Crop,
-                    contentDescription = "profile image"
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .align(Alignment.BottomStart),
+                        )
+                    },
+                contentScale = ContentScale.Crop,
+                contentDescription = "profile image"
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.BottomStart),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${profile.firstName} ${profile.lastName},",
-                            style = TextStyle(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 20.sp,
-                                lineHeight = 16.sp,
-                                color = Color.White
-                            ),
-                            modifier = Modifier.padding(top = 10.dp, start = 8.dp)
-                        )
-                        Text(
-                            text = profile.age,
-                            style = TextStyle(
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 16.sp,
-                                lineHeight = 16.sp,
-                                color = Color.White
-                            ),
-                            modifier = Modifier.padding(top = 10.dp, start = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = profile.address,
+                        text = "${profile.firstName} ${profile.lastName},",
                         style = TextStyle(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
                             lineHeight = 16.sp,
                             color = Color.White
                         ),
-                        modifier = Modifier.padding(bottom = 10.dp, start = 8.dp)
+                        modifier = Modifier.padding(top = 10.dp, start = 8.dp)
+                    )
+                    Text(
+                        text = profile.age,
+                        style = TextStyle(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 16.sp,
+                            lineHeight = 16.sp,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.padding(top = 10.dp, start = 4.dp)
                     )
                 }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-            ) {
-                var isAccepted by remember { mutableStateOf(false) }
-                var isDenied by remember { mutableStateOf(false) }
-                when (profileStatus) {
-                    ProfileStatus.ACCEPTED -> {
-                        CustomCTA(
-                            text = "Accept",
-                            textColor = ColorManager.textColor,
-                            backgroundColor = ColorManager.greenBackgroundColor,
-                            modifier = Modifier.weight(if (isAccepted) 1f else 1f),
-                            isLoading = false,
-                            onClick = {
-                                onAcceptCTA(profile)
-                                isAccepted = true
-                            }
-                        )
-                    }
-
-                    ProfileStatus.DENIED -> {
-                        CustomCTA(
-                            text = "Denied",
-                            textColor = ColorManager.textColor,
-                            backgroundColor = ColorManager.redBackgroundColor,
-                            isLoading = false,
-                            modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
-                            onClick = {
-                                onDeniedCTA(profile)
-                                isDenied = true
-                            }
-                        )
-                    }
-
-                    ProfileStatus.PENDING -> {
-                        CustomCTA(
-                            text = "Denied",
-                            textColor = ColorManager.textColor,
-                            backgroundColor = ColorManager.redBackgroundColor,
-                            isLoading = false,
-                            modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
-                            onClick = {
-                                onDeniedCTA(profile)
-                                isDenied = true
-                            }
-                        )
-
-                        CustomCTA(
-                            text = "Accept",
-                            textColor = ColorManager.textColor,
-                            backgroundColor = ColorManager.greenBackgroundColor,
-                            modifier = Modifier.weight(if (isAccepted) 1f else 1f),
-                            isLoading = false,
-                            onClick = {
-                                onAcceptCTA(profile)
-                                isAccepted = true
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-
-    @Composable
-    fun ProfileCardShimmer() {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize()
-        ) {
-            repeat(10) {
-                Box(
-                    modifier = Modifier
-                        .height(300.dp)
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .shimmer()
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = profile.address,
+                    style = TextStyle(
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 14.sp,
+                        lineHeight = 16.sp,
+                        color = Color.White
+                    ),
+                    modifier = Modifier.padding(bottom = 10.dp, start = 8.dp)
                 )
             }
         }
-    }
 
-    @Composable
-    fun ProfileCardError(
-        onRetry: () -> Unit
-    ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth(),
         ) {
-            CustomCTA(
-                text = "R E T R Y ",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                textColor = ColorManager.textColor,
-                backgroundColor = ColorManager.redBackgroundColor
-            ) {
-                onRetry()
+            var isAccepted by remember { mutableStateOf(false) }
+            var isDenied by remember { mutableStateOf(false) }
+            when (profileStatus) {
+                ProfileStatus.ACCEPTED -> {
+                    CustomCTA(
+                        text = "Accept",
+                        textColor = ColorManager.textColor,
+                        backgroundColor = ColorManager.greenBackgroundColor,
+                        modifier = Modifier.weight(if (isAccepted) 1f else 1f),
+                        isLoading = false,
+                        onClick = {
+                            onAcceptCTA(profile)
+                            isAccepted = true
+                        }
+                    )
+                }
+
+                ProfileStatus.DENIED -> {
+                    CustomCTA(
+                        text = "Denied",
+                        textColor = ColorManager.textColor,
+                        backgroundColor = ColorManager.redBackgroundColor,
+                        isLoading = false,
+                        modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
+                        onClick = {
+                            onDeniedCTA(profile)
+                            isDenied = true
+                        }
+                    )
+                }
+
+                ProfileStatus.PENDING -> {
+                    CustomCTA(
+                        text = "Denied",
+                        textColor = ColorManager.textColor,
+                        backgroundColor = ColorManager.redBackgroundColor,
+                        isLoading = false,
+                        modifier = Modifier.weight(if (isDenied) 0.01f else 1f),
+                        onClick = {
+                            onDeniedCTA(profile)
+                            isDenied = true
+                        }
+                    )
+
+                    CustomCTA(
+                        text = "Accept",
+                        textColor = ColorManager.textColor,
+                        backgroundColor = ColorManager.greenBackgroundColor,
+                        modifier = Modifier.weight(if (isAccepted) 1f else 1f),
+                        isLoading = false,
+                        onClick = {
+                            onAcceptCTA(profile)
+                            isAccepted = true
+                        }
+                    )
+                }
             }
+        }
+    }
+}
+
+
+@Composable
+fun ProfileCardShimmer() {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .fillMaxSize()
+    ) {
+        repeat(10) {
+            Box(
+                modifier = Modifier
+                    .height(300.dp)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .shimmer()
+            )
+        }
+    }
+}
+
+@Composable
+fun ProfileCardError(
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CustomCTA(
+            text = "R E T R Y ",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            textColor = ColorManager.textColor,
+            backgroundColor = ColorManager.redBackgroundColor
+        ) {
+            onRetry()
         }
     }
 }
@@ -362,5 +363,5 @@ class ProfileMatchesCompose {
 @Preview
 @Composable
 fun ProfileMatchesComposePreview() {
-    ProfileMatchesCompose().ProfileMatches()
+    ProfileMatches()
 }

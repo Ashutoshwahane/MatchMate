@@ -7,7 +7,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
-
 fun downloadImageAndSave(context: Context, imageUrl: String, userId: String): String? {
     return try {
         val url = URL(imageUrl)
@@ -20,7 +19,6 @@ fun downloadImageAndSave(context: Context, imageUrl: String, userId: String): St
         val file = File(context.filesDir, "user_$userId.jpg")
         val outputStream = FileOutputStream(file)
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-
         outputStream.close()
         inputStream.close()
         file.absolutePath

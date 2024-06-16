@@ -6,9 +6,6 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface MatchMateAPI {
-
     @GET("api/?results=10")
-    suspend fun getProfiles(
-       // @Query("api_key") key: String
-    ): Profiles
+    suspend fun getProfiles(): Profiles
 }

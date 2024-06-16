@@ -8,7 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.ashutoshwahane.matchmate.data.cloud.MatchMateAPI
-import dev.ashutoshwahane.matchmate.data.cloud.ProfileRepositoryImpl
+import dev.ashutoshwahane.matchmate.data.repositoryImpl.ProfileRepositoryImpl
 import dev.ashutoshwahane.matchmate.domain.repository.ProfileRepository
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

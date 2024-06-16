@@ -29,39 +29,46 @@ class ProfileMatchesViewmodel @Inject constructor(
 
     fun fetchProfiles() {
         getProfileUseCase.invoke(
-            scope = viewModelScope,
+            scope = viewModelScope, // Execute the use case within the ViewModel's coroutine scope
             callback = object : UseCaseResponse<List<ProfileModel>> {
                 override suspend fun onLoading() {
                     super.onLoading()
+                    // Update UI state to indicate loading is in progress
                     _uiState.update { it.copy(profilesResources = DataResource.loading()) }
                 }
             },
             params = Unit,
             dataResourceValue = { resource ->
                 Log.d("debug", "fetchProfiles: $resource")
-                if (resource.isSuccess()){
-                    _uiState.update { it.copy(profilesResources = resource) }
-                }
-                if (resource.isError()){
-                    _uiState.update { it.copy(profilesResources = DataResource.error(null)) }
+                // Handle the result of the use case
+                _uiState.update {
+                    it.copy(profilesResources = if (resource.isSuccess() && resource.data.isNullOrEmpty()) {
+                        DataResource.error(null) // Handle empty data as an error
+                    } else {
+                        resource // Directly use the resource if successful or already an error
+                    })
                 }
             }
         )
     }
 
     fun updateProfileStatus(profile: ProfileModel, newStatus: ProfileStatus) {
+        // Invoke the use case to update the profile status
         updateProfileUseCase.invoke(
-            scope = viewModelScope,
-            params = profile.copy(isAccepted = newStatus)
+            scope = viewModelScope, // Execute within the ViewModel's coroutine scope
+            params = profile.copy(isAccepted = newStatus) // Pass the updated profile
         )
+
+        // Update the UI state to reflect the changed profile status
         _uiState.update {
             it.copy(
                 profilesResources = it.profilesResources.copy(
                     data = it.profilesResources.data?.map { existingProfile ->
                         if (existingProfile.email == profile.email) {
+                            // Update the status of the matching profile
                             existingProfile.copy(isAccepted = newStatus)
                         } else {
-                            existingProfile
+                            existingProfile // Keep other profiles unchanged
                         }
                     }
                 )

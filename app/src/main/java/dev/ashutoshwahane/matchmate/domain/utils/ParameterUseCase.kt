@@ -35,7 +35,6 @@ abstract class ParameterUseCase<in Parameter, T> {
                 callback?.onError(throwable.cause?.message.toString())
             }
 
-
         }
     }
 
